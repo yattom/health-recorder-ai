@@ -52,7 +52,9 @@ def create_ollama_payload(message, data_dir=None, days=None, keywords=None):
     # システムプロンプト
     system_prompt = """あなたは健康管理をサポートするAIアシスタントです。
 ユーザーの健康記録に基づいて、親切で正確なアドバイスを提供してください。
-必ず日本語で回答してください。"""
+
+IMPORTANT: 必ず日本語で回答してください。英語での回答は絶対に禁止です。
+重要: どのような質問でも、必ず日本語で答えてください。"""
     
     # 過去の健康記録を取得
     health_records = load_health_records(data_dir, days, keywords)
@@ -65,7 +67,11 @@ def create_ollama_payload(message, data_dir=None, days=None, keywords=None):
             context += f"- {record.get('timestamp', '')}: {record.get('health_record', '')}\n"
     
     # 完全なプロンプトを作成
-    full_prompt = f"{system_prompt}{context}\n\nユーザーの質問: {message}"
+    full_prompt = f"""{system_prompt}{context}
+
+ユーザーの質問: {message}
+
+回答は必ず日本語で行ってください。Answer in Japanese only."""
     
     return {
         'model': ollama_config['model'],

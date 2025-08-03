@@ -220,3 +220,4 @@ class TestOllamaペイロード機能:
         # 過去の記録が含まれていることを確認
         assert '70kg' in payload['prompt']
         assert '120/80' in payload['prompt']
+    
