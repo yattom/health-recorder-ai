@@ -25,3 +25,4 @@
 - このプロジェクトはPoetryを使用して依存関係を管理しています
 - テスト実行は `poetry run pytest` を使用してください
 - その他のPythonコマンドも `poetry run` を前に付けて実行してください
+- 開発サーバーの起動: `poetry run python app.py`
