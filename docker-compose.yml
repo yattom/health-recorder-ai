@@ -2,16 +2,12 @@ version: '3.8'
 
 services:
   health-recorder:
-    build: .
+    image: yattom/health-recorder-ai:latest
     ports:
       - "5000:5000"
     environment:
-      # Ollama設定（QNAP NAS内のDockerネットワークでOllamaが動作している想定）
-      - OLLAMA_URL=http://host.docker.internal:11434/api/generate
-      - OLLAMA_MODEL=llama3
-      # データディレクトリ
+      # 基本設定（Ollama設定は環境に応じてContainer Stationで設定）
       - DATA_DIR=/app/data
-      # Flask設定
       - DEBUG=false
       - HOST=0.0.0.0
       - PORT=5000
