@@ -23,6 +23,57 @@ def get_ollama_config():
     }
 
 
+def load_health_records(data_dir=None, days=None, keywords=None):
+    """健康記録を読み込む"""
+    if data_dir is None:
+        data_dir = app.config.get('DATA_DIR', config.DEFAULT_DATA_DIR)
+    
+    records = []
+    if not os.path.exists(data_dir):
+        return records
+    
+    for filename in os.listdir(data_dir):
+        if filename.endswith('.json') and filename.startswith('health_record_'):
+            filepath = os.path.join(data_dir, filename)
+            try:
+                with open(filepath, 'r', encoding='utf-8') as f:
+                    record = json.load(f)
+                    records.append(record)
+            except (json.JSONDecodeError, FileNotFoundError):
+                continue
+    
+    return records
+
+
+def create_ollama_payload(message, data_dir=None, days=None, keywords=None):
+    """Ollamaに送信するペイロードを作成する"""
+    ollama_config = get_ollama_config()
+    
+    # システムプロンプト
+    system_prompt = """あなたは健康管理をサポートするAIアシスタントです。
+ユーザーの健康記録に基づいて、親切で正確なアドバイスを提供してください。
+必ず日本語で回答してください。"""
+    
+    # 過去の健康記録を取得
+    health_records = load_health_records(data_dir, days, keywords)
+    
+    # 文脈として健康記録を追加
+    context = ""
+    if health_records:
+        context = "\n\n過去の健康記録:\n"
+        for record in health_records[-5:]:  # 最新5件
+            context += f"- {record.get('timestamp', '')}: {record.get('health_record', '')}\n"
+    
+    # 完全なプロンプトを作成
+    full_prompt = f"{system_prompt}{context}\n\nユーザーの質問: {message}"
+    
+    return {
+        'model': ollama_config['model'],
+        'prompt': full_prompt,
+        'stream': False
+    }
+
+
 @app.route('/', methods=['GET'])
 def show_form():
     return render_template('index.html')
@@ -40,14 +91,11 @@ def chat_with_ai():
     # Ollama設定を取得
     ollama_config = get_ollama_config()
     
+    # ペイロードを作成
+    payload = create_ollama_payload(message)
+    
     # Ollama APIにリクエスト送信
     try:
-        payload = {
-            "model": ollama_config['model'],
-            "prompt": message,
-            "stream": False
-        }
-        
         response = requests.post(ollama_config['url'], json=payload)
         response.raise_for_status()
         

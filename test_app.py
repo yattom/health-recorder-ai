@@ -168,3 +168,55 @@ class Test設定ファイル機能:
         # 設定が読み込まれていることを確認
         assert config['url'] is not None
         assert config['model'] is not None
+
+
+class TestOllamaペイロード機能:
+    """Ollamaペイロード機能のテストクラス"""
+    
+    def test_基本ペイロード生成(self):
+        """基本的なペイロードが正しく生成されることをテスト"""
+        from app import create_ollama_payload
+        
+        message = "体重について教えて"
+        payload = create_ollama_payload(message)
+        
+        assert 'model' in payload
+        assert 'prompt' in payload
+        assert 'stream' in payload
+        assert payload['model'] == 'llama3'
+        assert payload['stream'] is False
+        assert message in payload['prompt']
+    
+    def test_システムプロンプト付きペイロード生成(self):
+        """システムプロンプトが含まれたペイロードが生成されることをテスト"""
+        from app import create_ollama_payload
+        
+        message = "体重について教えて"
+        payload = create_ollama_payload(message)
+        
+        # システムプロンプトに日本語指定が含まれていることを確認
+        assert '日本語' in payload['prompt']
+        assert 'アシスタント' in payload['prompt']  # システムプロンプトの存在を確認
+    
+    def test_健康記録文脈付きペイロード生成(self, temp_data_dir):
+        """過去の健康記録が文脈として含まれることをテスト"""
+        from app import create_ollama_payload
+        
+        # テスト用の健康記録ファイルを作成
+        test_record = {
+            "health_record": "体重: 70kg\n血圧: 120/80",
+            "timestamp": "2025-08-01T10:00:00"
+        }
+        
+        import json
+        import os
+        filename = os.path.join(temp_data_dir, "health_record_20250801_100000.json")
+        with open(filename, 'w', encoding='utf-8') as f:
+            json.dump(test_record, f, ensure_ascii=False)
+        
+        message = "最近の体重はどうですか？"
+        payload = create_ollama_payload(message, data_dir=temp_data_dir)
+        
+        # 過去の記録が含まれていることを確認
+        assert '70kg' in payload['prompt']
+        assert '120/80' in payload['prompt']
