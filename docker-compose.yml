@@ -1,0 +1,43 @@
+version: '3.8'
+
+services:
+  health-recorder:
+    build: .
+    ports:
+      - "5000:5000"
+    environment:
+      # Ollama設定（QNAP NAS内のDockerネットワークでOllamaが動作している想定）
+      - OLLAMA_URL=http://host.docker.internal:11434/api/generate
+      - OLLAMA_MODEL=llama3
+      # データディレクトリ
+      - DATA_DIR=/app/data
+      # Flask設定
+      - DEBUG=false
+      - HOST=0.0.0.0
+      - PORT=5000
+    volumes:
+      # データの永続化
+      - health_data:/app/data
+    restart: unless-stopped
+    # ヘルスチェック
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:5000/"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+volumes:
+  health_data:
+    driver: local
+
+# QNAP NAS環境用の設定例:
+# 1. 外部ネットワーク接続でOllamaを使用する場合:
+#    OLLAMA_URL=http://192.168.1.100:11434/api/generate
+# 
+# 2. データボリュームをホストディレクトリにマウントする場合:
+#    volumes:
+#      - /share/Container/health-recorder-data:/app/data
+#
+# 3. ポートを変更する場合:
+#    ports:
+#      - "8080:5000"

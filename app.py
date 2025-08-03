@@ -5,12 +5,25 @@ import sys
 from datetime import datetime
 from flask import Flask, render_template, request, redirect, url_for
 
+# 設定の読み込み: config.pyがあれば優先、なければ環境変数を使用
 try:
     import config
+    OLLAMA_URL = config.OLLAMA_URL
+    OLLAMA_MODEL = config.OLLAMA_MODEL
+    DEFAULT_DATA_DIR = config.DEFAULT_DATA_DIR
+    print("config.py から設定を読み込みました（開発環境）", file=sys.stderr)
 except ImportError:
-    print("ERROR: config.py が見つかりません。", file=sys.stderr)
-    print("config.py.example をコピーして config.py を作成し、設定を行ってください。", file=sys.stderr)
-    sys.exit(1)
+    # config.pyがない場合は環境変数から読み込み（デプロイ環境）
+    OLLAMA_URL = os.getenv('OLLAMA_URL')
+    OLLAMA_MODEL = os.getenv('OLLAMA_MODEL', 'llama3')
+    DEFAULT_DATA_DIR = os.getenv('DATA_DIR', 'data')
+    
+    if not OLLAMA_URL:
+        print("ERROR: OLLAMA_URL が設定されていません。", file=sys.stderr)
+        print("環境変数 OLLAMA_URL を設定するか、config.py を作成してください。", file=sys.stderr)
+        sys.exit(1)
+    
+    print("環境変数から設定を読み込みました（デプロイ環境）", file=sys.stderr)
 
 app = Flask(__name__)
 
@@ -18,15 +31,15 @@ app = Flask(__name__)
 def get_ollama_config():
     """Ollama設定を取得する"""
     return {
-        'url': config.OLLAMA_URL,
-        'model': config.OLLAMA_MODEL
+        'url': OLLAMA_URL,
+        'model': OLLAMA_MODEL
     }
 
 
 def load_health_records(data_dir=None, days=None, keywords=None):
     """健康記録を読み込む"""
     if data_dir is None:
-        data_dir = app.config.get('DATA_DIR', config.DEFAULT_DATA_DIR)
+        data_dir = app.config.get('DATA_DIR', DEFAULT_DATA_DIR)
     
     records = []
     if not os.path.exists(data_dir):
@@ -139,7 +152,7 @@ def chat_with_ai():
     ollama_config = get_ollama_config()
     
     # フィルタリングパラメータを使ってペイロードを作成
-    data_dir = app.config.get('DATA_DIR', config.DEFAULT_DATA_DIR)
+    data_dir = app.config.get('DATA_DIR', DEFAULT_DATA_DIR)
     payload = create_ollama_payload(message, data_dir=data_dir, days=days, keywords=keywords)
     
     # Ollama APIにリクエスト送信
@@ -162,7 +175,7 @@ def save_health_record():
     health_record = request.form['health_record']
     
     # データディレクトリの取得（テスト時はTESTING設定から、本番時は設定ファイルから）
-    data_dir = app.config.get('DATA_DIR', config.DEFAULT_DATA_DIR)
+    data_dir = app.config.get('DATA_DIR', DEFAULT_DATA_DIR)
     
     # ディレクトリが存在しない場合は作成
     os.makedirs(data_dir, exist_ok=True)
