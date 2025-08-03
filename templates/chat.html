@@ -14,7 +14,25 @@
         <div class="message">
             <p>記録について何か質問はありますか？</p>
         </div>
+        
+        {% if user_message %}
+        <div class="user-message">
+            <strong>あなた:</strong> {{ user_message }}
+        </div>
+        {% endif %}
+        
+        {% if ai_response %}
+        <div class="ai-response">
+            <strong>AI:</strong> {{ ai_response }}
+        </div>
+        {% endif %}
     </div>
+    
+    <form method="POST" action="/chat">
+        <textarea name="message" rows="3" cols="60" placeholder="AIに質問してください..."></textarea>
+        <br>
+        <input type="submit" value="送信">
+    </form>
     
     <a href="/">新しい記録を入力</a>
 </body>

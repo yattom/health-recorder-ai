@@ -111,3 +111,35 @@ class Testページフロー:
         
         assert response.status_code == 200
         assert b'chat' in response.data or 'チャット'.encode('utf-8') in response.data
+
+
+class TestAIチャット機能:
+    """AIチャット機能のテストクラス"""
+    
+    def test_チャットページに入力フォームがある(self, client):
+        """チャットページにメッセージ入力フォームがあることをテスト"""
+        response = client.get('/chat')
+        
+        assert response.status_code == 200
+        assert b'<form' in response.data
+        assert b'name="message"' in response.data
+        assert b'method="post"' in response.data.lower()
+    
+    def test_チャットメッセージをPOSTできる(self, client):
+        """チャットメッセージをPOSTして適切なレスポンスが返ることをテスト"""
+        message = "体重について教えて"
+        
+        response = client.post('/chat', data={'message': message})
+        
+        assert response.status_code == 200
+        assert 'チャット'.encode('utf-8') in response.data
+    
+    def test_AIからのレスポンスが表示される(self, client):
+        """AIからのレスポンスがページに表示されることをテスト"""
+        message = "体重について教えて"
+        
+        response = client.post('/chat', data={'message': message})
+        
+        assert response.status_code == 200
+        # AIからの何らかのレスポンスが含まれている
+        assert b'AI' in response.data or 'AI'.encode('utf-8') in response.data

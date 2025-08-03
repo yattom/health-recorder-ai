@@ -1,5 +1,6 @@
 import os
 import json
+import requests
 from datetime import datetime
 from flask import Flask, render_template, request, redirect, url_for
 
@@ -14,6 +15,31 @@ def show_form():
 @app.route('/chat', methods=['GET'])
 def show_chat():
     return render_template('chat.html')
+
+
+@app.route('/chat', methods=['POST'])
+def chat_with_ai():
+    message = request.form['message']
+    
+    # Ollama APIにリクエスト送信
+    try:
+        ollama_url = "http://localhost:11434/api/generate"
+        payload = {
+            "model": "llama3",
+            "prompt": message,
+            "stream": False
+        }
+        
+        response = requests.post(ollama_url, json=payload)
+        response.raise_for_status()
+        
+        ai_response = response.json().get('response', 'AIからの応答を取得できませんでした。')
+        
+    except requests.exceptions.RequestException:
+        ai_response = "AIサービスに接続できませんでした。"
+    
+    # チャットページにメッセージとレスポンスを表示
+    return render_template('chat.html', user_message=message, ai_response=ai_response)
 
 
 @app.route('/', methods=['POST'])
