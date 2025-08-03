@@ -51,7 +51,7 @@ class Test健康記録保存機能:
         response = client.post('/', data={'health_record': health_record})
         
         assert response.status_code == 302  # リダイレクト
-        assert response.location.endswith('/')
+        assert response.location.endswith('/chat')
     
     def test_記録送信時にファイルが一つ作成される(self, client, temp_data_dir):
         """健康記録をPOST送信したときにファイルが一つ作成されることをテスト"""
@@ -91,3 +91,23 @@ class Test健康記録保存機能:
         assert 'health_record' in saved_data
         assert saved_data['health_record'] == health_record
         assert 'timestamp' in saved_data
+
+
+class Testページフロー:
+    """ページフロー機能のテストクラス"""
+    
+    def test_記録送信後にチャットページにリダイレクトする(self, client, temp_data_dir):
+        """健康記録送信後にチャットページにリダイレクトされることをテスト"""
+        health_record = "体重: 70kg\n血圧: 120/80\n調子: 良好"
+        
+        response = client.post('/', data={'health_record': health_record})
+        
+        assert response.status_code == 302  # リダイレクト
+        assert response.location.endswith('/chat')
+    
+    def test_チャットページが正しく表示される(self, client):
+        """チャットページが正しく表示されることをテスト"""
+        response = client.get('/chat')
+        
+        assert response.status_code == 200
+        assert b'chat' in response.data or 'チャット'.encode('utf-8') in response.data

@@ -11,6 +11,11 @@ def show_form():
     return render_template('index.html')
 
 
+@app.route('/chat', methods=['GET'])
+def show_chat():
+    return render_template('chat.html')
+
+
 @app.route('/', methods=['POST'])
 def save_health_record():
     health_record = request.form['health_record']
@@ -36,8 +41,8 @@ def save_health_record():
     with open(filepath, 'w', encoding='utf-8') as f:
         json.dump(data, f, ensure_ascii=False, indent=2)
     
-    # PRGパターン: POST後はGETにリダイレクト
-    return redirect(url_for('show_form'))
+    # PRGパターン: POST後はチャットページにリダイレクト
+    return redirect(url_for('show_chat'))
 
 
 if __name__ == '__main__':
