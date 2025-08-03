@@ -17,29 +17,28 @@
 ### 1. Webアプリケーション (Docker Container)
 
 #### 1.1 バックエンド (Python)
-- **フレームワーク**: Flask または FastAPI
+- **フレームワーク**: ✅ Flask（実装済み）
 - **構成**:
-  - `app.py`: メインアプリケーション
-  - `models/`: データモデル（ファイル操作）
-  - `services/`: ビジネスロジック
-    - `record_service.py`: 記録の保存・取得
-    - `ai_service.py`: LLM連携
-    - `guidance_service.py`: 入力ガイダンス生成
-  - `routes/`: APIエンドポイント
-    - `record_routes.py`: 記録関連API
-    - `chat_routes.py`: AIチャット関連API
+  - `app.py`: ✅ メインアプリケーション（実装済み）
+    - 記録保存、チャット機能、フィルタリング機能を統合
+  - `config.py`: ✅ 設定ファイル（Ollama URL、モデル名等）
+  - `test_app.py`: ✅ 包括的テストスイート（TDD approach）
+- **実装済み機能**:
+  - ファイルシステムベースの記録保存・読み込み
+  - Ollama LLM連携（日本語システムプロンプト付き）
+  - 期間・キーワードフィルタリング機能
 
-#### 1.2 フロントエンド (JavaScript)
-- **技術**: Vanilla JavaScript + HTML/CSS
+#### 1.2 フロントエンド
+- **技術**: ✅ HTML/CSS（実装済み）
 - **構成**:
-  - `static/index.html`: メインページ
-  - `static/js/app.js`: メインアプリケーション
-  - `static/js/api.js`: API通信
-  - `static/css/style.css`: スタイル
-- **機能**:
-  - 記録入力フォーム
-  - ガイダンス表示
-  - AIチャットインターフェース
+  - `templates/index.html`: ✅ 記録入力ページ（実装済み）
+  - `templates/chat.html`: ✅ AIチャットページ（実装済み）
+  - `static/styles.css`: ✅ 基本スタイル（実装済み）
+- **実装済み機能**:
+  - ✅ 記録入力フォーム（大きなテキストエリア）
+  - ✅ AIチャットインターフェース
+  - ✅ 期間指定UI（1週間・1ヶ月ドロップダウン）
+  - ✅ キーワードフィルタリングUI（テキスト入力）
 
 ### 2. データストレージ
 
@@ -63,20 +62,23 @@
       └── recent_patterns.json
 ```
 
-#### 2.2 ファイル形式
-- **記録ファイル**: プレーンテキスト（.txt）
+#### 2.2 ファイル形式（実装済み）
+- **記録ファイル**: ✅ JSON形式（.json）
+  ```json
+  {
+    "health_record": "今日は7時間寝た。朝のランニング30分。気分は普通",
+    "timestamp": "2024-01-01T14:30:22.123456"
+  }
   ```
-  timestamp: 2024-01-01 14:30:22
-  今日は7時間寝た。朝のランニング30分。気分は普通
-  ```
+  - ファイル名: `health_record_YYYYMMDD_HHMMSS.json`
 
-- **チャット履歴**: JSON形式
+- **チャット履歴**: 🚧 未実装（次期実装予定）
   ```json
   {
     "timestamp": "2024-01-01T14:35:00Z",
     "user_message": "最近の睡眠パターンはどう？",
     "ai_response": "過去1週間の記録を見ると...",
-    "context_files": ["20240101_143022_record.txt", ...]
+    "context_records": ["health_record_20240101_143022.json", ...]
   }
   ```
 
