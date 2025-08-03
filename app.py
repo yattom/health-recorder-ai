@@ -119,11 +119,28 @@ def show_chat():
 def chat_with_ai():
     message = request.form['message']
     
+    # フィルタリングパラメータを取得
+    days_str = request.form.get('days', '')
+    keywords = request.form.get('keywords', '')
+    
+    # days を整数に変換（空文字の場合は None）
+    days = None
+    if days_str:
+        try:
+            days = int(days_str)
+        except ValueError:
+            days = None
+    
+    # keywords が空文字の場合は None
+    if not keywords.strip():
+        keywords = None
+    
     # Ollama設定を取得
     ollama_config = get_ollama_config()
     
-    # ペイロードを作成
-    payload = create_ollama_payload(message)
+    # フィルタリングパラメータを使ってペイロードを作成
+    data_dir = app.config.get('DATA_DIR', config.DEFAULT_DATA_DIR)
+    payload = create_ollama_payload(message, data_dir=data_dir, days=days, keywords=keywords)
     
     # Ollama APIにリクエスト送信
     try:

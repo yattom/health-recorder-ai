@@ -8,6 +8,21 @@ from datetime import datetime
 from app import app
 
 
+def create_test_record(temp_dir, content, days_ago):
+    """テスト用レコード作成のヘルパー関数"""
+    from datetime import datetime, timedelta
+    import json
+    import os
+    
+    date = datetime.now() - timedelta(days=days_ago)
+    record = {"health_record": content, "timestamp": date.isoformat()}
+    filename = f"health_record_{date.strftime('%Y%m%d_%H%M%S')}.json"
+    filepath = os.path.join(temp_dir, filename)
+    with open(filepath, 'w', encoding='utf-8') as f:
+        json.dump(record, f, ensure_ascii=False)
+    return record
+
+
 @pytest.fixture
 def client():
     app.config['TESTING'] = True
@@ -143,6 +158,61 @@ class TestAIチャット機能:
         assert response.status_code == 200
         # AIからの何らかのレスポンスが含まれている
         assert b'AI' in response.data or 'AI'.encode('utf-8') in response.data
+    
+    def test_フィルタリング付きペイロード生成_期間指定(self, temp_data_dir):
+        """期間フィルタリング付きでペイロードが正しく生成されることをテスト"""
+        from app import create_ollama_payload
+        
+        # テストデータ作成
+        create_test_record(temp_data_dir, "体重: 70kg 血圧: 120/80", 3)   # 3日前
+        create_test_record(temp_data_dir, "頭痛がひどい 薬を飲んだ", 5)    # 5日前
+        create_test_record(temp_data_dir, "睡眠時間: 8時間", 45)         # 45日前
+        
+        message = "最近の記録について教えて"
+        payload = create_ollama_payload(message, data_dir=temp_data_dir, days=30)
+        
+        # 30日以内の記録のみが含まれていることを確認
+        assert "体重: 70kg" in payload['prompt']
+        assert "頭痛がひどい" in payload['prompt']
+        # 45日前の記録は含まれない
+        assert "睡眠時間" not in payload['prompt']
+    
+    def test_フィルタリング付きペイロード生成_キーワード指定(self, temp_data_dir):
+        """キーワードフィルタリング付きでペイロードが正しく生成されることをテスト"""
+        from app import create_ollama_payload
+        
+        # テストデータ作成
+        create_test_record(temp_data_dir, "体重: 70kg 血圧: 120/80", 3)
+        create_test_record(temp_data_dir, "頭痛がひどい 薬を飲んだ", 5)
+        create_test_record(temp_data_dir, "睡眠時間: 8時間", 7)
+        
+        message = "体重について教えて"
+        payload = create_ollama_payload(message, data_dir=temp_data_dir, keywords="体重")
+        
+        # 体重を含む記録のみが含まれていることを確認
+        assert "体重: 70kg" in payload['prompt']
+        # 体重を含まない記録は含まれない
+        assert "頭痛がひどい" not in payload['prompt']
+        assert "睡眠時間" not in payload['prompt']
+    
+    def test_フィルタリング付きペイロード生成_期間とキーワード併用(self, temp_data_dir):
+        """期間とキーワード両方のフィルタリング付きでペイロードが正しく生成されることをテスト"""
+        from app import create_ollama_payload
+        
+        # テストデータ作成
+        create_test_record(temp_data_dir, "体重: 70kg 血圧: 120/80", 3)   # 体重あり、期間内
+        create_test_record(temp_data_dir, "体重: 72kg 運動した", 45)       # 体重あり、期間外
+        create_test_record(temp_data_dir, "頭痛がひどい 薬を飲んだ", 5)    # 体重なし、期間内
+        
+        message = "体重について教えて"
+        payload = create_ollama_payload(message, data_dir=temp_data_dir, days=30, keywords="体重")
+        
+        # 期間内かつ体重を含む記録のみが含まれていることを確認
+        assert "体重: 70kg" in payload['prompt']
+        # 期間外の体重記録は含まれない
+        assert "体重: 72kg" not in payload['prompt']
+        # 期間内でも体重を含まない記録は含まれない
+        assert "頭痛がひどい" not in payload['prompt']
 
 
 class Test設定ファイル機能:
@@ -220,8 +290,7 @@ class TestOllamaペイロード機能:
         # 過去の記録が含まれていることを確認
         assert '70kg' in payload['prompt']
         assert '120/80' in payload['prompt']
-
-
+    
 class TestAIコンテキスト設定UI:
     """AIのコンテキスト設定UI機能のテストクラス"""
     
@@ -258,20 +327,6 @@ class TestAIコンテキスト設定UI:
 class Testデータフィルタリング機能:
     """データフィルタリング機能のテストクラス"""
     
-    def _create_test_record(self, temp_dir, content, days_ago):
-        """テスト用レコード作成のヘルパー関数"""
-        from datetime import datetime, timedelta
-        import json
-        import os
-        
-        date = datetime.now() - timedelta(days=days_ago)
-        record = {"health_record": content, "timestamp": date.isoformat()}
-        filename = f"health_record_{date.strftime('%Y%m%d_%H%M%S')}.json"
-        filepath = os.path.join(temp_dir, filename)
-        with open(filepath, 'w', encoding='utf-8') as f:
-            json.dump(record, f, ensure_ascii=False)
-        return record
-    
     @pytest.mark.parametrize("filter_days,expected_count", [
         (7, 1),   # 1週間フィルタ -> 最近の記録のみ
         (30, 2),  # 1ヶ月フィルタ -> 最近と中程度の記録
@@ -282,9 +337,9 @@ class Testデータフィルタリング機能:
         from app import load_health_records
         
         # テストデータ作成
-        self._create_test_record(temp_data_dir, "とても古い記録", 45)  # 45日前
-        self._create_test_record(temp_data_dir, "古い記録", 21)      # 3週間前
-        self._create_test_record(temp_data_dir, "最近の記録", 3)      # 3日前
+        create_test_record(temp_data_dir, "とても古い記録", 45)  # 45日前
+        create_test_record(temp_data_dir, "古い記録", 21)      # 3週間前
+        create_test_record(temp_data_dir, "最近の記録", 3)      # 3日前
         
         # テスト実行
         records = load_health_records(data_dir=temp_data_dir, days=filter_days)
@@ -297,9 +352,9 @@ class Testデータフィルタリング機能:
         from app import load_health_records
         
         # テストデータ作成
-        self._create_test_record(temp_data_dir, "体重: 70kg 血圧: 120/80", 3)
-        self._create_test_record(temp_data_dir, "頭痛がひどい 薬を飲んだ", 5)
-        self._create_test_record(temp_data_dir, "体重: 72kg 運動した", 7)
+        create_test_record(temp_data_dir, "体重: 70kg 血圧: 120/80", 3)
+        create_test_record(temp_data_dir, "頭痛がひどい 薬を飲んだ", 5)
+        create_test_record(temp_data_dir, "体重: 72kg 運動した", 7)
         
         # キーワードで絞り込み
         records = load_health_records(data_dir=temp_data_dir, keywords="体重")
@@ -315,9 +370,9 @@ class Testデータフィルタリング機能:
         from app import load_health_records
         
         # テストデータ作成
-        self._create_test_record(temp_data_dir, "体重: 70kg 血圧: 120/80", 3)
-        self._create_test_record(temp_data_dir, "頭痛がひどい 薬を飲んだ", 5)
-        self._create_test_record(temp_data_dir, "睡眠時間: 8時間", 7)
+        create_test_record(temp_data_dir, "体重: 70kg 血圧: 120/80", 3)
+        create_test_record(temp_data_dir, "頭痛がひどい 薬を飲んだ", 5)
+        create_test_record(temp_data_dir, "睡眠時間: 8時間", 7)
         
         # 複数キーワードで絞り込み（スペース区切り・OR条件）
         records = load_health_records(data_dir=temp_data_dir, keywords="体重 頭痛")
@@ -333,9 +388,9 @@ class Testデータフィルタリング機能:
         from app import load_health_records
         
         # テストデータ作成
-        self._create_test_record(temp_data_dir, "体重: 70kg 血圧: 120/80", 3)
-        self._create_test_record(temp_data_dir, "頭痛がひどい 薬を飲んだ", 5)
-        self._create_test_record(temp_data_dir, "睡眠時間: 8時間", 7)
+        create_test_record(temp_data_dir, "体重: 70kg 血圧: 120/80", 3)
+        create_test_record(temp_data_dir, "頭痛がひどい 薬を飲んだ", 5)
+        create_test_record(temp_data_dir, "睡眠時間: 8時間", 7)
         
         # 複数キーワードで絞り込み（コンマ区切り・OR条件）
         records = load_health_records(data_dir=temp_data_dir, keywords="体重,頭痛")
