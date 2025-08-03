@@ -29,6 +29,13 @@
     </div>
     
     <form method="POST" action="/chat">
+        <label for="days">参照期間:</label>
+        <select name="days">
+            <option value="">すべて</option>
+            <option value="7" selected>1週間</option>
+            <option value="30">1ヶ月</option>
+        </select>
+        <br>
         <textarea name="message" rows="3" cols="60" placeholder="AIに質問してください..."></textarea>
         <br>
         <input type="submit" value="送信">

@@ -220,4 +220,75 @@ class TestOllamaペイロード機能:
         # 過去の記録が含まれていることを確認
         assert '70kg' in payload['prompt']
         assert '120/80' in payload['prompt']
+
+
+class TestAIコンテキスト設定UI:
+    """AIのコンテキスト設定UI機能のテストクラス"""
+    
+    def test_チャットページに期間指定UIがある(self, client):
+        """チャットページに期間指定のUI要素があることをテスト"""
+        response = client.get('/chat')
+        
+        assert response.status_code == 200
+        # 期間選択のselect要素があることを確認
+        assert b'name="days"' in response.data
+        assert b'<select' in response.data
+        assert '1週間'.encode('utf-8') in response.data
+        assert '1ヶ月'.encode('utf-8') in response.data
+    
+    def test_チャットページにキーワードフィルタリングUIがある(self, client):
+        """チャットページにキーワードフィルタリングのUI要素があることをテスト"""
+        response = client.get('/chat')
+        
+        assert response.status_code == 200
+        # キーワード入力のinput要素があることを確認
+        assert b'name="keywords"' in response.data
+        assert b'type="text"' in response.data
+        assert 'キーワード'.encode('utf-8') in response.data or 'keyword'.encode('utf-8') in response.data
+    
+    def test_デフォルトで1週間が選択される(self, client):
+        """チャットページでデフォルトで1週間が選択されることをテスト"""
+        response = client.get('/chat')
+        
+        assert response.status_code == 200
+        # 1週間のオプションがselectedであることを確認
+        assert b'value="7" selected' in response.data
+
+
+class Testデータフィルタリング機能:
+    """データフィルタリング機能のテストクラス"""
+    
+    def _create_test_record(self, temp_dir, content, days_ago):
+        """テスト用レコード作成のヘルパー関数"""
+        from datetime import datetime, timedelta
+        import json
+        import os
+        
+        date = datetime.now() - timedelta(days=days_ago)
+        record = {"health_record": content, "timestamp": date.isoformat()}
+        filename = f"health_record_{date.strftime('%Y%m%d_%H%M%S')}.json"
+        filepath = os.path.join(temp_dir, filename)
+        with open(filepath, 'w', encoding='utf-8') as f:
+            json.dump(record, f, ensure_ascii=False)
+        return record
+    
+    @pytest.mark.parametrize("filter_days,expected_count", [
+        (7, 1),   # 1週間フィルタ -> 最近の記録のみ
+        (30, 2),  # 1ヶ月フィルタ -> 最近と中程度の記録
+        (None, 3) # フィルタなし -> 全ての記録
+    ])
+    def test_期間指定でレコードが絞り込まれる(self, temp_data_dir, filter_days, expected_count):
+        """期間指定パラメータで過去の記録が絞り込まれることをテスト"""
+        from app import load_health_records
+        
+        # テストデータ作成
+        self._create_test_record(temp_data_dir, "とても古い記録", 45)  # 45日前
+        self._create_test_record(temp_data_dir, "古い記録", 21)      # 3週間前
+        self._create_test_record(temp_data_dir, "最近の記録", 3)      # 3日前
+        
+        # テスト実行
+        records = load_health_records(data_dir=temp_data_dir, days=filter_days)
+        
+        # 検証
+        assert len(records) == expected_count
     

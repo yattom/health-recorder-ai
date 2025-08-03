@@ -32,14 +32,27 @@ def load_health_records(data_dir=None, days=None, keywords=None):
     if not os.path.exists(data_dir):
         return records
     
+    # 期間フィルタリング用の日付を計算
+    cutoff_date = None
+    if days is not None:
+        from datetime import datetime, timedelta
+        cutoff_date = datetime.now() - timedelta(days=days)
+    
     for filename in os.listdir(data_dir):
         if filename.endswith('.json') and filename.startswith('health_record_'):
             filepath = os.path.join(data_dir, filename)
             try:
                 with open(filepath, 'r', encoding='utf-8') as f:
                     record = json.load(f)
+                    
+                    # 期間フィルタリング
+                    if cutoff_date is not None:
+                        record_timestamp = datetime.fromisoformat(record['timestamp'])
+                        if record_timestamp < cutoff_date:
+                            continue
+                    
                     records.append(record)
-            except (json.JSONDecodeError, FileNotFoundError):
+            except (json.JSONDecodeError, FileNotFoundError, KeyError, ValueError):
                 continue
     
     return records
