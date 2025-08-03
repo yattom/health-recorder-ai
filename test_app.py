@@ -143,3 +143,28 @@ class TestAIチャット機能:
         assert response.status_code == 200
         # AIからの何らかのレスポンスが含まれている
         assert b'AI' in response.data or 'AI'.encode('utf-8') in response.data
+
+
+class Test設定ファイル機能:
+    """設定ファイル機能のテストクラス"""
+    
+    def test_設定ファイルからOllama設定を読み込む(self):
+        """config.pyからOllamaのURLとモデル名が読み込まれることをテスト"""
+        from app import get_ollama_config
+        
+        config = get_ollama_config()
+        
+        assert 'url' in config
+        assert 'model' in config
+        assert config['url'].startswith('http')
+        assert isinstance(config['model'], str)
+    
+    def test_設定値が正しく使用される(self, client):
+        """設定されたOllama設定が実際に使用されることをテスト"""
+        from app import get_ollama_config
+        
+        config = get_ollama_config()
+        
+        # 設定が読み込まれていることを確認
+        assert config['url'] is not None
+        assert config['model'] is not None

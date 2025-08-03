@@ -1,0 +1,18 @@
+# 設定ファイル例
+# このファイルをconfig.pyにコピーして、あなたの環境に合わせて設定してください。
+
+# Ollama設定
+# Ollamaが動作しているホストとポートを指定してください
+# WSLを使用している場合、WindowsホストのIPアドレスを指定する必要があります
+OLLAMA_URL = "http://localhost:11434/api/generate"  # Ollamaサーバーのエンドポイント
+OLLAMA_MODEL = "llama3"  # 使用するモデル名
+
+# データ保存設定
+DEFAULT_DATA_DIR = "data"  # 健康記録を保存するディレクトリ
+
+# 設定例:
+# WSLからWindowsホストのOllamaに接続する場合:
+# OLLAMA_URL = "http://192.168.0.29:11434/api/generate"  # あなたのWindows IPに変更
+#
+# 異なるモデルを使用する場合:
+# OLLAMA_MODEL = "llama2"  # または他の利用可能なモデル

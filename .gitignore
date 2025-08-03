@@ -168,6 +168,9 @@ cython_debug/
 # Data directory (health records)
 data/
 
+# Configuration files (contains local environment info)
+config.py
+
 # Logs
 *.log
 
