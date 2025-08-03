@@ -200,4 +200,6 @@ def save_health_record():
 
 
 if __name__ == '__main__':
-    app.run(debug=True, host='0.0.0.0')
+    # 環境変数からポートを取得、デフォルトは5000（開発時）
+    port = int(os.getenv('PORT', '5000'))
+    app.run(debug=True, host='0.0.0.0', port=port)
