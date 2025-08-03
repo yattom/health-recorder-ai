@@ -51,6 +51,18 @@ def load_health_records(data_dir=None, days=None, keywords=None):
                         if record_timestamp < cutoff_date:
                             continue
                     
+                    # キーワードフィルタリング
+                    if keywords is not None and keywords.strip():
+                        # コンマが含まれている場合はコンマ区切り、そうでなければスペース区切り
+                        if ',' in keywords:
+                            keyword_list = [kw.strip() for kw in keywords.split(',')]
+                        else:
+                            keyword_list = keywords.split()
+                        
+                        # いずれかのキーワードが含まれているかチェック（OR条件）
+                        if not any(kw in record['health_record'] for kw in keyword_list if kw):
+                            continue
+                    
                     records.append(record)
             except (json.JSONDecodeError, FileNotFoundError, KeyError, ValueError):
                 continue

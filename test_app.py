@@ -292,3 +292,57 @@ class Testデータフィルタリング機能:
         # 検証
         assert len(records) == expected_count
     
+    def test_キーワード指定でレコードが絞り込まれる(self, temp_data_dir):
+        """キーワード指定パラメータで記録が絞り込まれることをテスト"""
+        from app import load_health_records
+        
+        # テストデータ作成
+        self._create_test_record(temp_data_dir, "体重: 70kg 血圧: 120/80", 3)
+        self._create_test_record(temp_data_dir, "頭痛がひどい 薬を飲んだ", 5)
+        self._create_test_record(temp_data_dir, "体重: 72kg 運動した", 7)
+        
+        # キーワードで絞り込み
+        records = load_health_records(data_dir=temp_data_dir, keywords="体重")
+        
+        # 体重を含む記録のみ含まれることを確認
+        assert len(records) == 2
+        matched_contents = {record['health_record'] for record in records}
+        expected_contents = {"体重: 70kg 血圧: 120/80", "体重: 72kg 運動した"}
+        assert matched_contents == expected_contents
+    
+    def test_複数キーワード_スペース区切りで絞り込まれる(self, temp_data_dir):
+        """複数キーワード（スペース区切り・OR条件）で記録が絞り込まれることをテスト"""
+        from app import load_health_records
+        
+        # テストデータ作成
+        self._create_test_record(temp_data_dir, "体重: 70kg 血圧: 120/80", 3)
+        self._create_test_record(temp_data_dir, "頭痛がひどい 薬を飲んだ", 5)
+        self._create_test_record(temp_data_dir, "睡眠時間: 8時間", 7)
+        
+        # 複数キーワードで絞り込み（スペース区切り・OR条件）
+        records = load_health_records(data_dir=temp_data_dir, keywords="体重 頭痛")
+        
+        # いずれかのキーワードを含む記録が含まれることを確認
+        assert len(records) == 2
+        matched_contents = {record['health_record'] for record in records}
+        expected_contents = {"体重: 70kg 血圧: 120/80", "頭痛がひどい 薬を飲んだ"}
+        assert matched_contents == expected_contents
+    
+    def test_複数キーワード_コンマ区切りで絞り込まれる(self, temp_data_dir):
+        """複数キーワード（コンマ区切り・OR条件）で記録が絞り込まれることをテスト"""
+        from app import load_health_records
+        
+        # テストデータ作成
+        self._create_test_record(temp_data_dir, "体重: 70kg 血圧: 120/80", 3)
+        self._create_test_record(temp_data_dir, "頭痛がひどい 薬を飲んだ", 5)
+        self._create_test_record(temp_data_dir, "睡眠時間: 8時間", 7)
+        
+        # 複数キーワードで絞り込み（コンマ区切り・OR条件）
+        records = load_health_records(data_dir=temp_data_dir, keywords="体重,頭痛")
+        
+        # いずれかのキーワードを含む記録が含まれることを確認
+        assert len(records) == 2
+        matched_contents = {record['health_record'] for record in records}
+        expected_contents = {"体重: 70kg 血圧: 120/80", "頭痛がひどい 薬を飲んだ"}
+        assert matched_contents == expected_contents
+    
