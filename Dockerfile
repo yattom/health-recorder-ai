@@ -19,7 +19,7 @@ RUN poetry config virtualenvs.create false
 COPY pyproject.toml poetry.lock ./
 
 # 依存関係をインストール（プロダクション用のみ）
-RUN poetry install --no-dev
+RUN poetry install --only=main
 
 # アプリケーションコードをコピー
 COPY . .

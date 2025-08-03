@@ -2,7 +2,7 @@ version: '3.8'
 
 services:
   health-recorder:
-    image: yattom/health-recorder-ai:latest
+    image: health-recorder-ai:latest
     ports:
       - "5000:5000"
     environment:

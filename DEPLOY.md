@@ -2,59 +2,68 @@
 
 ## 前提条件
 
-1. QNAP NASでContainer Stationがインストール済み
+1. QNAP NASでContainer StationまたはDocker CEがインストール済み
 2. OllamaがQNAP NAS上で動作している（または外部サーバーでアクセス可能）
-3. インターネット接続（Docker Hubからイメージをダウンロードするため）
+3. ローカル開発マシンからNASへのSSH接続が可能
+4. ローカルマシンにDockerがインストール済み
 
-## デプロイ方法
+## 簡単デプロイ（推奨）
 
-### 方法A: Container Station UI（推奨）
-
-Container StationのGUIを使用してコンテナを作成する最も簡単な方法：
-
-#### 1. Container Stationでコンテナ作成
-1. QNAP Container Stationを開く
-2. 「Create」→「Container」を選択
-3. 「Search Docker Hub」で `yattom/health-recorder-ai` を検索してダウンロード
-
-#### 2. 環境変数設定
-「Advanced Settings」→「Environment」で以下を設定：
-- `OLLAMA_URL`: `http://your-ollama-host:11434/api/generate`
-- `OLLAMA_MODEL`: `llama3`
-
-#### 3. ボリュームマウント設定
-「Advanced Settings」→「Volume」で：
-- Host Path: `/share/Container/health-recorder-data`
-- Mount Path: `/app/data`
-
-#### 4. ネットワーク設定
-- Port Forwarding: `5000:5000`
-
-### 方法B: Docker Compose使用
-
-NAS上に `docker-compose.yml` ファイルを配置する必要があります：
+自動デプロイスクリプトを使用：
 
 ```bash
-# SSH経由でファイルを作成、またはFile Stationでアップロード
-# 場所: /share/Container/health-recorder/docker-compose.yml
+# デプロイスクリプトを実行
+./deploy-to-nas.sh 192.168.1.100
+
+# 完了後、NASにSSH接続してコンテナを起動
+ssh admin@192.168.1.100
+cd /share/Container/health-recorder
+
+# 環境変数を設定してコンテナ起動
+OLLAMA_URL=http://your-ollama-host:11434/api/generate \
+OLLAMA_MODEL=llama3 \
+docker-compose up -d
 ```
 
-#### 2. SSH経由でDockerコンテナ起動
+## 手動デプロイ
+
+### 1. ローカルでDockerイメージをビルド
+
+```bash
+# プロジェクトディレクトリで実行
+docker build -t health-recorder-ai:latest .
+
+# イメージをエクスポート
+docker save health-recorder-ai:latest -o health-recorder-ai.tar
+```
+
+### 2. NASにファイルを転送
+
+```bash
+# NAS上にディレクトリ作成
+ssh admin@your-nas-ip "mkdir -p /share/Container/health-recorder"
+
+# 必要ファイルを転送
+scp health-recorder-ai.tar admin@your-nas-ip:/share/Container/health-recorder/
+scp docker-compose.yml admin@your-nas-ip:/share/Container/health-recorder/
+```
+
+### 3. NAS上でセットアップ
 
 ```bash
 # NASにSSH接続
 ssh admin@your-nas-ip
 
-# プロジェクトディレクトリに移動
+# デプロイディレクトリに移動
 cd /share/Container/health-recorder
 
-# 環境変数を設定してコンテナを起動
+# Dockerイメージをロード
+docker load -i health-recorder-ai.tar
+
+# 環境変数を設定してコンテナ起動
 OLLAMA_URL=http://your-ollama-host:11434/api/generate \
 OLLAMA_MODEL=llama3 \
 docker-compose up -d
-
-# ログ確認
-docker-compose logs -f
 ```
 
 ## アクセス確認
@@ -122,33 +131,39 @@ docker-compose logs health-recorder
 docker-compose ps
 ```
 
-## イメージビルドとアップロード（開発者向け）
-
-新しいバージョンをリリースする場合：
-
-```bash
-# ローカルでイメージをビルド
-docker build -t yattom/health-recorder-ai:latest .
-
-# Docker Hubにプッシュ
-docker push yattom/health-recorder-ai:latest
-```
-
-またはGitHub Actionsで自動ビルド（`.github/workflows/docker-build.yml`設定済み）
-
 ## 更新手順
 
-Container Station UIの場合：
-1. コンテナを停止
-2. 最新イメージをpull
-3. コンテナを再作成
+新しいバージョンをデプロイする場合：
 
-SSH経由の場合：
 ```bash
-# 最新イメージを取得
-docker-compose pull
+# 1. 自動デプロイスクリプトを再実行
+./deploy-to-nas.sh your-nas-ip
 
-# コンテナを再起動
+# 2. NAS上でコンテナを再起動
+ssh admin@your-nas-ip
+cd /share/Container/health-recorder
+OLLAMA_URL=http://your-ollama-host:11434/api/generate \
+OLLAMA_MODEL=llama3 \
+docker-compose up -d
+```
+
+または手動での更新：
+
+```bash
+# 1. 新しいイメージをビルド・エクスポート
+docker build -t health-recorder-ai:latest .
+docker save health-recorder-ai:latest -o health-recorder-ai.tar
+
+# 2. NASに転送
+scp health-recorder-ai.tar admin@your-nas-ip:/share/Container/health-recorder/
+
+# 3. NAS上で更新
+ssh admin@your-nas-ip
+cd /share/Container/health-recorder
+docker-compose down
+docker load -i health-recorder-ai.tar
+OLLAMA_URL=http://your-ollama-host:11434/api/generate \
+OLLAMA_MODEL=llama3 \
 docker-compose up -d
 ```
 
