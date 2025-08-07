@@ -101,7 +101,7 @@ IMPORTANT: 必ず日本語で回答してください。英語での回答は絶
     context = ""
     if health_records:
         context = "\n\n過去の健康記録:\n"
-        for record in health_records[-5:]:  # 最新5件
+        for record in health_records[:]:
             context += f"- {record.get('timestamp', '')}: {record.get('health_record', '')}\n"
     
     # 完全なプロンプトを作成
