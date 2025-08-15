@@ -23,7 +23,7 @@
         
         {% if ai_response %}
         <div class="ai-response">
-            <strong>AI:</strong> {{ ai_response }}
+            <strong>AI:</strong> {{ ai_response|safe }}
         </div>
         {% endif %}
     </div>

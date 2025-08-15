@@ -4,6 +4,7 @@ import requests
 import sys
 from datetime import datetime
 from flask import Flask, render_template, request, redirect, url_for
+from markdown import convert_markdown
 
 # 設定の読み込み: config.pyがあれば優先、なければ環境変数を使用
 try:
@@ -166,8 +167,11 @@ def chat_with_ai():
         print(f'{e=}', file=sys.stderr)
         ai_response = "AIサービスに接続できませんでした。"
     
+    # AIレスポンスにMarkdown変換を適用
+    ai_response_html = convert_markdown(ai_response)
+    
     # チャットページにメッセージとレスポンスを表示
-    return render_template('chat.html', user_message=message, ai_response=ai_response)
+    return render_template('chat.html', user_message=message, ai_response=ai_response_html)
 
 
 @app.route('/', methods=['POST'])
