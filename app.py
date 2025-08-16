@@ -37,6 +37,40 @@ def get_ollama_config():
     }
 
 
+def get_latest_health_record_time(data_dir=None):
+    """最新の健康記録ファイルの時刻を取得する"""
+    import re
+    
+    if data_dir is None:
+        data_dir = app.config.get('DATA_DIR', DEFAULT_DATA_DIR)
+    
+    if not os.path.exists(data_dir):
+        return None
+    
+    # health_record_*.jsonパターンのファイルを探す
+    pattern = re.compile(r'^health_record_(\d{8}_\d{6})\.json$')
+    files = []
+    
+    for filename in os.listdir(data_dir):
+        match = pattern.match(filename)
+        if match:
+            timestamp_str = match.group(1)
+            files.append(timestamp_str)
+    
+    if not files:
+        return None
+    
+    # ファイル名でソートして最新を取得
+    latest_timestamp = sorted(files)[-1]
+    
+    # 日時をフォーマット: YYYYMMDD_HHMMSS -> "M月D日 HH:MM"
+    try:
+        dt = datetime.strptime(latest_timestamp, '%Y%m%d_%H%M%S')
+        return f"{dt.month}月{dt.day}日 {dt.hour:02d}:{dt.minute:02d}"
+    except ValueError:
+        return None
+
+
 def load_health_records(data_dir=None, days=None, keywords=None):
     """健康記録を読み込む"""
     if data_dir is None:
@@ -121,7 +155,8 @@ IMPORTANT: 必ず日本語で回答してください。英語での回答は絶
 
 @app.route('/', methods=['GET'])
 def show_form():
-    return render_template('index.html')
+    latest_time = get_latest_health_record_time()
+    return render_template('index.html', latest_time=latest_time)
 
 
 @app.route('/chat', methods=['GET'])

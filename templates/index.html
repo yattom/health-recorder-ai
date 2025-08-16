@@ -8,6 +8,9 @@
 </head>
 <body>
     <h1>健康記録</h1>
+    {% if latest_time %}
+    <p class="latest-time">最新記録: {{ latest_time }}</p>
+    {% endif %}
     <form method="POST" action="/">
         <textarea name="health_record" rows="10" cols="80" placeholder="今日の記録を入力してください..."></textarea>
         <br>
